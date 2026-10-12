@@ -1,0 +1,9 @@
+{
+  "processor_name": "Processor A",
+  "configuration_type": "example_placeholder",
+  "backend_name": null,
+  "qubit_count": null,
+  "basis_gates": [],
+  "coupling_map": [],
+  "description": "Replace this example configuration with verified Processor A specifications from the official challenge kit."
+}
