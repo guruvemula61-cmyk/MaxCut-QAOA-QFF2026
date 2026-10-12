@@ -1,383 +1,911 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Max-Cut QAOA | Interactive Lab</title>
-<style>
-:root {
-  --bg:#0b1020; --panel:#151d31; --line:#293651;
-  --text:#edf3ff; --muted:#a4b2ca; --cyan:#5eead4;
-  --pink:#f472b6; --blue:#60a5fa;
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);
-  font:15px/1.6 system-ui,Arial,sans-serif}
-header{padding:34px 20px;background:linear-gradient(120deg,#123f59,#30204e);
-  border-bottom:1px solid var(--line)}
-header,main,footer{max-width:1250px;margin:auto}
-header h1{margin:0;font-size:clamp(27px,4vw,42px)}
-header p,.muted{color:var(--muted)}
-main{padding:22px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
-.panel{background:var(--panel);border:1px solid var(--line);
-  border-radius:16px;padding:20px;min-width:0}
-h2{font-size:19px;margin:0 0 15px}
-label{display:block;color:var(--muted);margin:12px 0 5px}
-select,input,button{font:inherit;border-radius:9px;padding:10px;
-  border:1px solid var(--line)}
-select,input{background:#0d1528;color:var(--text);width:100%}
-button{background:#263954;color:white;cursor:pointer;font-weight:650}
-button:hover{filter:brightness(1.2)}
-button.primary{background:var(--cyan);color:#09211e;border:0}
-button:disabled{opacity:.5;cursor:wait}
-.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:17px}
-.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.stat{background:#0d1528;border:1px solid var(--line);padding:15px;border-radius:12px}
-.stat strong{display:block;font-size:clamp(21px,3vw,32px);color:var(--cyan)}
-.stat span{font-size:12px;color:var(--muted)}
-#graph{width:100%;height:300px;display:block}
-#bars{display:flex;align-items:end;gap:6px;height:190px;
-  padding:10px 4px;border-bottom:1px solid var(--line);overflow:hidden}
-.bar{flex:1;min-width:5px;background:var(--blue);border-radius:4px 4px 0 0;
-  position:relative}
-.bar.best{background:var(--pink)}
-.bar span{position:absolute;bottom:-25px;left:50%;transform:translateX(-50%);
-  font-size:10px;color:var(--muted)}
-#status{margin-top:12px;color:var(--cyan);white-space:pre-wrap}
-table{border-collapse:collapse;width:100%;margin-top:12px}
-td,th{text-align:left;padding:9px;border-bottom:1px solid var(--line)}
-.note{font-size:12px;color:var(--muted)}
-footer{padding:25px;text-align:center;color:var(--muted)}
-@media(max-width:760px){.grid{grid-template-columns:1fr}main{padding:13px}
-.stats{grid-template-columns:1fr 1fr}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="Interactive Max-Cut optimization lab using a browser-based QAOA statevector simulation.">
+  <title>Max-Cut QAOA | Interactive Lab</title>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #141d31;
+      --panel2: #0d1528;
+      --border: #293651;
+      --text: #edf3ff;
+      --muted: #a4b2ca;
+      --cyan: #5eead4;
+      --pink: #f472b6;
+      --blue: #60a5fa;
+      --green: #86efac;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.6 system-ui, Arial, sans-serif;
+    }
+
+    button, select { font: inherit; }
+
+    button:focus-visible, select:focus-visible, a:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 3px;
+    }
+
+    header {
+      background: linear-gradient(125deg, #123f59, #30204e);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-inner, main, footer {
+      max-width: 1250px;
+      margin: auto;
+    }
+
+    .header-inner { padding: 35px 22px; }
+
+    .eyebrow {
+      color: var(--cyan);
+      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 2px;
+    }
+
+    h1 {
+      margin: 8px 0;
+      font-size: clamp(28px, 5vw, 44px);
+      line-height: 1.15;
+    }
+
+    h2 { font-size: 19px; margin: 0 0 16px; }
+    h3 { font-size: 15px; }
+    p { margin-top: 8px; }
+
+    .muted, .note { color: var(--muted); }
+    .note { font-size: 12px; }
+
+    main { padding: 24px 20px; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .pill {
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 5px 11px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .panel {
+      min-width: 0;
+      padding: 20px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+
+    .full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      margin: 13px 0 6px;
+      color: var(--muted);
+    }
+
+    select {
+      width: 100%;
+      padding: 11px;
+      background: var(--panel2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 18px;
+    }
+
+    button {
+      padding: 10px 15px;
+      background: #263954;
+      color: white;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      cursor: pointer;
+      font-weight: 650;
+    }
+
+    button:hover { filter: brightness(1.17); }
+
+    button.primary {
+      background: var(--cyan);
+      color: #09211e;
+      border-color: transparent;
+    }
+
+    button:disabled { opacity: .55; cursor: wait; }
+
+    #status {
+      margin-top: 15px;
+      color: var(--cyan);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 14px;
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      min-width: 0;
+    }
+
+    .stat strong {
+      display: block;
+      color: var(--cyan);
+      font-size: clamp(20px, 3vw, 30px);
+      overflow-wrap: anywhere;
+    }
+
+    .stat span { color: var(--muted); font-size: 12px; }
+
+    #graph {
+      display: block;
+      width: 100%;
+      height: auto;
+      min-height: 230px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+
+    #bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 7px;
+      height: 200px;
+      padding: 12px 4px 29px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .bar {
+      flex: 1;
+      min-width: 0;
+      background: var(--blue);
+      border-radius: 4px 4px 0 0;
+      position: relative;
+    }
+
+    .bar.best { background: var(--pink); }
+
+    .bar span {
+      position: absolute;
+      bottom: -25px;
+      left: 50%;
+      transform: translateX(-50%) rotate(-35deg);
+      transform-origin: center;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    th { color: var(--muted); font-weight: 600; }
+
+    .formula {
+      padding: 12px;
+      background: var(--panel2);
+      border-radius: 10px;
+      overflow-wrap: anywhere;
+    }
+
+    footer {
+      padding: 24px 20px;
+      text-align: center;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 760px) {
+      main { padding: 14px; }
+      .grid { grid-template-columns: 1fr; }
+      .full { grid-column: auto; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .panel { padding: 15px; }
+      .header-inner { padding: 28px 17px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+      }
+    }
+  </style>
 </head>
+
 <body>
 <header>
-<h1>Max-Cut Optimization Using QAOA</h1>
-<p>Interactive Quantum Optimization Lab · Qiskit Fall Fest 2026</p>
-<div class="muted">Team Tech Titans · Pushpa Borra &amp; Selsiya Gudiseva</div>
+  <div class="header-inner">
+    <div class="eyebrow">Qiskit Fall Fest 2026 · Project Lab</div>
+    <h1>Max-Cut Optimization Using QAOA</h1>
+    <p class="muted">Explore graph partitioning with a browser-based quantum algorithm simulation.</p>
+    <p><strong>Team Tech Titans</strong> · Pushpa Borra &amp; Selsiya Gudiseva</p>
+    <p class="note">Educational simulator · No quantum hardware connection</p>
+  </div>
 </header>
 
 <main>
-<div class="grid">
-<section class="panel">
-<h2>Simulation controls</h2>
-<label for="graph">Graph instance</label>
-<select id="graph">
-<option value="demo">Five-node example graph</option>
-<option value="triangle">Triangle graph</option>
-<option value="cycle">Six-node cycle</option>
-</select>
+  <div class="toolbar">
+    <div>
+      <h2 style="margin-bottom:4px">Interactive Optimization Lab</h2>
+      <div class="muted">Configure a graph, run parameter search and inspect the results.</div>
+    </div>
+    <span class="pill" id="appState">Ready to simulate</span>
+  </div>
 
-<label for="depth">QAOA layers (p)</label>
-<select id="depth">
-<option value="1">p = 1</option>
-<option value="2">p = 2</option>
-<option value="3">p = 3</option>
-</select>
+  <div class="grid">
+    <section class="panel">
+      <h2>01 · Simulation controls</h2>
 
-<label for="trials">Parameter search trials</label>
-<select id="trials">
-<option value="20">20 · Fast</option>
-<option value="60" selected>60 · Balanced</option>
-<option value="150">150 · Slower</option>
-</select>
+      <label for="graph">Graph instance</label>
+      <select id="graph">
+        <option value="demo">Five-node example</option>
+        <option value="triangle">Triangle graph</option>
+        <option value="cycle">Six-node cycle</option>
+      </select>
 
-<div class="actions">
-<button class="primary" id="run">▶ Run QAOA</button>
-<button id="reset">Reset</button>
-<button id="csv">Export CSV</button>
-</div>
-<div id="status" role="status">Ready. Run a simulation to calculate results.</div>
-<p class="note">This browser implementation uses a statevector simulator and a stochastic parameter search. Results can vary between runs.</p>
-</section>
+      <label for="depth">QAOA layers (p)</label>
+      <select id="depth">
+        <option value="1">p = 1</option>
+        <option value="2">p = 2</option>
+        <option value="3">p = 3</option>
+      </select>
 
-<section class="panel">
-<h2>Graph partition</h2>
-<svg id="graph" viewBox="0 0 400 300" role="img" aria-label="Graph with two colored partitions"></svg>
-<div class="muted">Teal and pink nodes represent the two partitions. Green edges cross the cut.</div>
-</section>
+      <label for="trials">Random parameter candidates</label>
+      <select id="trials">
+        <option value="20">20 · Fast</option>
+        <option value="60" selected>60 · Balanced</option>
+        <option value="150">150 · More candidates</option>
+      </select>
 
-<section class="panel">
-<h2>Computed results</h2>
-<div class="stats">
-<div class="stat"><strong id="cut">—</strong><span>Best sampled cut</span></div>
-<div class="stat"><strong id="expected">—</strong><span>Expected cut</span></div>
-<div class="stat"><strong id="ratio">—</strong><span>Approximation ratio</span></div>
-<div class="stat"><strong id="optimum">—</strong><span>Classical optimum</span></div>
-<div class="stat"><strong id="prob">—</strong><span>Best-state probability</span></div>
-<div class="stat"><strong id="runtime">—</strong><span>Runtime (ms)</span></div>
-</div>
-</section>
+      <div class="actions">
+        <button class="primary" id="run">▶ Run QAOA</button>
+        <button id="reset">Reset</button>
+        <button id="csv">Export CSV</button>
+      </div>
 
-<section class="panel">
-<h2>Most probable bitstrings</h2>
-<div id="bars" aria-label="Measured state probabilities"></div>
-<p class="note">Bars show the highest-probability computational basis states from the final simulated state.</p>
-</section>
+      <div id="status" role="status" aria-live="polite">
+        Ready. Select your settings and run a simulation.
+      </div>
 
-<section class="panel">
-<h2>Experiment details</h2>
-<table>
-<tbody id="details">
-<tr><th>Graph</th><td>Not run</td></tr>
-<tr><th>QAOA layers</th><td>—</td></tr>
-<tr><th>Parameter search</th><td>—</td></tr>
-</tbody>
-</table>
-</section>
+      <p class="note">
+        This app uses a local statevector simulator and random parameter search.
+        Results may vary. It does not run Qiskit Python or real quantum hardware.
+      </p>
+    </section>
 
-<section class="panel">
-<h2>Processor comparison</h2>
-<p>This standalone website does not connect to Processor A or B. Real comparison requires the official processor configurations and transpilation/runtime results.</p>
-<table>
-<thead><tr><th>Metric</th><th>Processor A</th><th>Processor B</th></tr></thead>
-<tbody>
-<tr><td>Backend</td><td>Not configured</td><td>Not configured</td></tr>
-<tr><td>Gate count</td><td>—</td><td>—</td></tr>
-<tr><td>Circuit depth</td><td>—</td><td>—</td></tr>
-<tr><td>SWAP count</td><td>—</td><td>—</td></tr>
-</tbody>
-</table>
-</section>
-</div>
+    <section class="panel">
+      <h2>02 · Graph partition</h2>
+      <svg id="graphView" viewBox="0 0 400 300"
+           role="img" aria-label="Graph partition visualization"></svg>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--cyan)"></i>Partition 0</span>
+        <span><i class="dot" style="background:var(--pink)"></i>Partition 1</span>
+        <span><i class="dot" style="background:var(--green)"></i>Cut edge</span>
+      </div>
+      <p class="note">Green edges connect nodes assigned to different partitions.</p>
+    </section>
+
+    <section class="panel">
+      <h2>03 · Computed results</h2>
+      <div class="stats">
+        <div class="stat"><strong id="sampleCut">—</strong><span>Best cut in simulated shots</span></div>
+        <div class="stat"><strong id="expected">—</strong><span>Expected cut value</span></div>
+        <div class="stat"><strong id="ratio">—</strong><span>Expected / optimum</span></div>
+        <div class="stat"><strong id="optimum">—</strong><span>Exact classical optimum</span></div>
+        <div class="stat"><strong id="optProb">—</strong><span>Probability of optimal cut</span></div>
+        <div class="stat"><strong id="runtime">—</strong><span>Runtime (ms)</span></div>
+      </div>
+      <p class="note">The classical optimum is calculated by checking every possible partition of the selected small graph.</p>
+    </section>
+
+    <section class="panel">
+      <h2>04 · Most probable bitstrings</h2>
+      <div id="bars" aria-label="State probability chart"></div>
+      <p class="note">Bars display the 12 highest-probability computational basis states after simulation.</p>
+    </section>
+
+    <section class="panel">
+      <h2>05 · Experiment details</h2>
+      <div class="table-wrap">
+        <table>
+          <tbody id="details">
+            <tr><th>Status</th><td>Not run</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>06 · Processor comparison</h2>
+      <p>
+        This GitHub Pages demo is not connected to quantum processors.
+        Real processor comparisons require actual backend information,
+        circuit transpilation and execution results.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Metric</th><th>Processor A</th><th>Processor B</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Backend</td><td>Not configured</td><td>Not configured</td></tr>
+            <tr><td>Gate count</td><td>—</td><td>—</td></tr>
+            <tr><td>Circuit depth</td><td>—</td><td>—</td></tr>
+            <tr><td>SWAP count</td><td>—</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel full">
+      <h2>07 · How the algorithm works</h2>
+      <div class="formula">
+        <strong>Objective:</strong> Maximize
+        C(x) = Σ wᵤᵥ · [xᵤ ≠ xᵥ]
+      </div>
+      <p>1. Prepare an equal superposition of computational basis states.</p>
+      <p>2. Apply the cost unitary for each graph edge.</p>
+      <p>3. Apply the mixing unitary for each QAOA layer.</p>
+      <p>4. Search candidate parameters and estimate the expected cut.</p>
+      <p>5. Simulate measurements and compare the result with the exact classical optimum.</p>
+    </section>
+  </div>
 </main>
 
-<footer>Max-Cut QAOA · Interactive educational simulation · GitHub Pages</footer>
+<footer>
+  Max-Cut QAOA · Interactive educational simulation · GitHub Pages
+</footer>
 
 <script>
 "use strict";
 
 const $ = id => document.getElementById(id);
 let lastResult = null;
+let running = false;
 
-function getGraph(){
+function getGraph() {
   const kind = $("graph").value;
-  if(kind === "triangle")
-    return {n:3, edges:[[0,1,1],[1,2,1],[0,2,1]], name:"Triangle"};
-  if(kind === "cycle")
-    return {n:6, edges:[[0,1,1],[1,2,1],[2,3,1],
-      [3,4,1],[4,5,1],[5,0,1]], name:"Six-node cycle"};
-  return {n:5, edges:[[0,1,1],[0,2,1],[1,2,1],
-    [1,3,1],[2,3,1],[3,4,1]], name:"Five-node example"};
-}
 
-function cutValue(g,bits){
-  let value=0;
-  for(const [u,v,w] of g.edges)
-    if(bits[u]!==bits[v]) value+=w;
-  return value;
-}
-
-function exactOptimum(g){
-  let best=-1, bitsBest=[];
-  for(let mask=0;mask<(1<<g.n);mask++){
-    const bits=Array.from({length:g.n},(_,i)=>(mask>>i)&1);
-    const value=cutValue(g,bits);
-    if(value>best){best=value;bitsBest=bits;}
+  if (kind === "triangle") {
+    return {
+      n: 3,
+      edges: [[0,1,1],[1,2,1],[0,2,1]],
+      name: "Triangle"
+    };
   }
-  return {value:best,bits:bitsBest};
+
+  if (kind === "cycle") {
+    return {
+      n: 6,
+      edges: [[0,1,1],[1,2,1],[2,3,1],
+              [3,4,1],[4,5,1],[5,0,1]],
+      name: "Six-node cycle"
+    };
+  }
+
+  return {
+    n: 5,
+    edges: [[0,1,1],[0,2,1],[1,2,1],
+            [1,3,1],[2,3,1],[3,4,1]],
+    name: "Five-node example"
+  };
 }
 
-// Complex statevector utilities.
-function applyPhase(state, angle, predicate){
-  for(let i=0;i<state.length;i++)
-    if(predicate(i)) {
-      const a=state[i], c=Math.cos(angle), s=Math.sin(angle);
-      state[i]=[a[0]*c-a[1]*s,a[0]*s+a[1]*c];
+function cutValue(graph, bits) {
+  let total = 0;
+
+  for (const [u, v, weight] of graph.edges) {
+    if (bits[u] !== bits[v]) total += weight;
+  }
+
+  return total;
+}
+
+function exactOptimum(graph) {
+  let best = -Infinity;
+  let bestBits = [];
+
+  for (let mask = 0; mask < (1 << graph.n); mask++) {
+    const bits = Array.from(
+      {length: graph.n},
+      (_, i) => (mask >> i) & 1
+    );
+
+    const value = cutValue(graph, bits);
+
+    if (value > best) {
+      best = value;
+      bestBits = bits;
     }
+  }
+
+  return {value: best, bits: bestBits};
 }
 
-function applyMixer(state,n,beta,q){
-  const c=Math.cos(beta), s=Math.sin(beta);
-  const step=1<<q;
-  for(let base=0;base<state.length;base+=step*2){
-    for(let j=0;j<step;j++){
-      const i=base+j, k=i+step;
-      const a=state[i], b=state[k];
-      state[i]=[c*a[0]+s*b[1],c*a[1]-s*b[0]];
-      state[k]=[c*b[0]+s*a[1],c*b[1]-s*a[0]];
+/* Apply a complex phase to states satisfying a predicate. */
+function applyPhase(state, angle, predicate) {
+  const c = Math.cos(angle);
+  const s = Math.sin(angle);
+
+  for (let i = 0; i < state.length; i++) {
+    if (!predicate(i)) continue;
+
+    const re = state[i][0];
+    const im = state[i][1];
+
+    state[i][0] = re * c - im * s;
+    state[i][1] = re * s + im * c;
+  }
+}
+
+/* Apply exp(-i beta X) to one qubit. */
+function applyMixer(state, qubit, beta) {
+  const c = Math.cos(beta);
+  const s = Math.sin(beta);
+  const step = 1 << qubit;
+
+  for (let base = 0; base < state.length; base += step * 2) {
+    for (let j = 0; j < step; j++) {
+      const i = base + j;
+      const k = i + step;
+
+      const ar = state[i][0];
+      const ai = state[i][1];
+      const br = state[k][0];
+      const bi = state[k][1];
+
+      state[i][0] = c * ar + s * bi;
+      state[i][1] = c * ai - s * br;
+
+      state[k][0] = c * br + s * ai;
+      state[k][1] = c * bi - s * ar;
     }
   }
 }
 
-function simulate(g,gammas,betas){
-  const size=1<<g.n;
-  let state=Array.from({length:size},()=>[1/Math.sqrt(size),0]);
+function simulate(graph, gammas, betas) {
+  const size = 1 << graph.n;
+  const initial = 1 / Math.sqrt(size);
 
-  for(let layer=0;layer<gammas.length;layer++){
-    const gamma=gammas[layer], beta=betas[layer];
-    for(const [u,v,w] of g.edges){
-      const maskU=1<<u, maskV=1<<v;
-      applyPhase(state,-gamma*w,i=>
-        Boolean(i&maskU)!==Boolean(i&maskV));
+  const state = Array.from(
+    {length: size},
+    () => [initial, 0]
+  );
+
+  for (let layer = 0; layer < gammas.length; layer++) {
+    const gamma = gammas[layer];
+    const beta = betas[layer];
+
+    for (const [u, v, weight] of graph.edges) {
+      const maskU = 1 << u;
+      const maskV = 1 << v;
+
+      applyPhase(
+        state,
+        -gamma * weight,
+        index => Boolean(index & maskU) !== Boolean(index & maskV)
+      );
     }
-    for(let q=0;q<g.n;q++) applyMixer(state,g.n,beta,q);
+
+    for (let q = 0; q < graph.n; q++) {
+      applyMixer(state, q, beta);
+    }
   }
 
-  return state.map(a=>a[0]*a[0]+a[1]*a[1]);
+  return state.map(([re, im]) => re * re + im * im);
 }
 
-function evaluate(g,params){
-  const p=params.length/2;
-  const probabilities=simulate(g,params.slice(0,p),params.slice(p));
-  let expected=0, bestProb=-1, bestBits=[], bestSample=0;
-  const ranked=[];
-  for(let i=0;i<probabilities.length;i++){
-    const bits=Array.from({length:g.n},(_,q)=>(i>>q)&1);
-    const value=cutValue(g,bits), probability=probabilities[i];
-    expected+=probability*value;
-    ranked.push({bits,value,probability});
-    if(probability>bestProb){bestProb=probability;bestBits=bits;}
-    if(value>bestSample)bestSample=value;
+function evaluate(graph, params, p) {
+  const gammas = params.slice(0, p);
+  const betas = params.slice(p);
+  const probabilities = simulate(graph, gammas, betas);
+
+  let expected = 0;
+  let mostProbable = null;
+  let optimalProbability = 0;
+  const ranked = [];
+
+  const optimum = exactOptimum(graph);
+
+  for (let i = 0; i < probabilities.length; i++) {
+    const bits = Array.from(
+      {length: graph.n},
+      (_, q) => (i >> q) & 1
+    );
+
+    const value = cutValue(graph, bits);
+    const probability = probabilities[i];
+
+    expected += probability * value;
+
+    if (value === optimum.value) {
+      optimalProbability += probability;
+    }
+
+    ranked.push({bits, value, probability});
+
+    if (!mostProbable || probability > mostProbable.probability) {
+      mostProbable = {bits, value, probability};
+    }
   }
-  ranked.sort((a,b)=>b.probability-a.probability);
-  return {expected,probabilities,ranked,bestProb,bestBits,bestSample};
+
+  ranked.sort((a, b) => b.probability - a.probability);
+
+  return {
+    expected,
+    probabilities,
+    ranked,
+    optimalProbability,
+    mostProbable
+  };
 }
 
-function run(){
-  const start=performance.now();
-  const g=getGraph(), p=Number($("depth").value);
-  const trials=Number($("trials").value);
-  const optimum=exactOptimum(g);
-  const paramsCount=2*p;
-  let best=null, bestParams=null;
+function randomParams(p) {
+  const params = [];
 
-  $("run").disabled=true;
-  $("status").textContent="Searching QAOA parameters…";
+  for (let i = 0; i < p; i++) {
+    params.push(Math.random() * Math.PI);
+  }
 
-  // Yield briefly so the status message can render.
-  setTimeout(()=>{
-    try{
-      for(let t=0;t<trials;t++){
-        const params=Array.from({length:paramsCount},()=>Math.random()*Math.PI);
-        const result=evaluate(g,params);
-        if(!best || result.expected>best.expected){
-          best=result;bestParams=params;
+  for (let i = 0; i < p; i++) {
+    params.push(Math.random() * Math.PI);
+  }
+
+  return params;
+}
+
+function sampleIndex(probabilities) {
+  const r = Math.random();
+  let cumulative = 0;
+
+  for (let i = 0; i < probabilities.length; i++) {
+    cumulative += probabilities[i];
+
+    if (r < cumulative) return i;
+  }
+
+  return probabilities.length - 1;
+}
+
+function run() {
+  if (running) return;
+
+  running = true;
+  $("run").disabled = true;
+  $("appState").textContent = "Simulation running";
+  $("status").textContent = "Searching candidate parameters…";
+
+  const started = performance.now();
+  const graph = getGraph();
+  const p = Number($("depth").value);
+  const trials = Number($("trials").value);
+
+  /*
+    Yield to the browser so the running status can render.
+    This is a local simulator, not a quantum hardware job.
+  */
+  setTimeout(() => {
+    try {
+      const optimum = exactOptimum(graph);
+      let best = null;
+      let bestParams = null;
+
+      for (let t = 0; t < trials; t++) {
+        const params = randomParams(p);
+        const result = evaluate(graph, params, p);
+
+        if (!best || result.expected > best.expected) {
+          best = result;
+          bestParams = params;
         }
       }
 
-      const elapsed=performance.now()-start;
-      const finalBits=best.bestBits;
-      lastResult={
-        graph:g.name,n:g.n,edges:g.edges,p,trials,
-        optimum:optimum.value,
-        expected:best.expected,
-        ratio:best.expected/optimum.value,
-        bestCut:cutValue(g,finalBits),
-        probability:best.bestProb,
-        runtime:elapsed,
-        params:bestParams,
-        partition:finalBits,
-        ranked:best.ranked
+      const shots = 1000;
+      const counts = {};
+      let bestObservedCut = 0;
+
+      for (let shot = 0; shot < shots; shot++) {
+        const index = sampleIndex(best.probabilities);
+        const bits = Array.from(
+          {length: graph.n},
+          (_, q) => (index >> q) & 1
+        );
+
+        const value = cutValue(graph, bits);
+        bestObservedCut = Math.max(bestObservedCut, value);
+
+        const key = bits.join("");
+        counts[key] = (counts[key] || 0) + 1;
+      }
+
+      const elapsed = performance.now() - started;
+
+      lastResult = {
+        graph: graph.name,
+        n: graph.n,
+        edges: graph.edges,
+        p,
+        trials,
+        shots,
+        optimum: optimum.value,
+        expected: best.expected,
+        ratio: optimum.value === 0 ? 0 : best.expected / optimum.value,
+        bestObservedCut,
+        optimalProbability: best.optimalProbability,
+        runtime: elapsed,
+        params: bestParams,
+        partition: best.mostProbable.bits,
+        ranked: best.ranked,
+        counts
       };
 
-      $("cut").textContent=lastResult.bestCut;
-      $("expected").textContent=best.expected.toFixed(3);
-      $("ratio").textContent=lastResult.ratio.toFixed(3);
-      $("optimum").textContent=optimum.value;
-      $("prob").textContent=(best.bestProb*100).toFixed(2)+"%";
-      $("runtime").textContent=elapsed.toFixed(0);
-      $("status").textContent="Simulation completed successfully.";
-      $("details").innerHTML=
-        `<tr><th>Graph</th><td>${g.name}</td></tr>
-         <tr><th>Nodes / edges</th><td>${g.n} / ${g.edges.length}</td></tr>
-         <tr><th>QAOA layers</th><td>${p}</td></tr>
-         <tr><th>Parameter trials</th><td>${trials}</td></tr>
-         <tr><th>Best parameters</th><td>${bestParams.map(x=>x.toFixed(3)).join(", ")}</td></tr>`;
+      $("sampleCut").textContent = bestObservedCut;
+      $("expected").textContent = best.expected.toFixed(3);
+      $("ratio").textContent = lastResult.ratio.toFixed(3);
+      $("optimum").textContent = optimum.value;
+      $("optProb").textContent =
+        (best.optimalProbability * 100).toFixed(2) + "%";
+      $("runtime").textContent = elapsed.toFixed(1);
 
-      drawGraph(g,finalBits);
-      drawBars(best.ranked.slice(0,12));
-    }catch(error){
-      $("status").textContent="Simulation error: "+error.message;
-    }finally{
-      $("run").disabled=false;
+      $("details").innerHTML = "";
+
+      const rows = [
+        ["Graph", graph.name],
+        ["Nodes / edges", `${graph.n} / ${graph.edges.length}`],
+        ["QAOA layers", p],
+        ["Parameter candidates", trials],
+        ["Simulated measurement shots", shots],
+        ["Best parameters", bestParams.map(x => x.toFixed(4)).join(", ")],
+        ["Most probable bitstring", best.mostProbable.bits.join("")],
+        ["Measurement counts", "Export CSV for detailed metrics"]
+      ];
+
+      for (const [label, value] of rows) {
+        const tr = document.createElement("tr");
+        const th = document.createElement("th");
+        const td = document.createElement("td");
+
+        th.textContent = label;
+        td.textContent = String(value);
+        tr.append(th, td);
+        $("details").appendChild(tr);
+      }
+
+      drawGraph(graph, best.mostProbable.bits);
+      drawBars(best.ranked.slice(0, 12));
+
+      $("status").textContent =
+        "Simulation completed. Results are from the local statevector model.";
+      $("appState").textContent = "Simulation complete";
+    } catch (error) {
+      $("status").textContent = "Simulation error: " + error.message;
+      $("appState").textContent = "Error";
+    } finally {
+      running = false;
+      $("run").disabled = false;
     }
-  },30);
+  }, 20);
 }
 
-function drawGraph(g,bits){
-  const svg=$("graph");
-  const cx=200,cy=145,r=100;
-  const pts=Array.from({length:g.n},(_,i)=>{
-    const angle=-Math.PI/2+2*Math.PI*i/g.n;
-    return {x:cx+r*Math.cos(angle),y:cy+r*Math.sin(angle)};
+function drawGraph(graph, bits) {
+  const svg = $("graphView");
+  const cx = 200;
+  const cy = 145;
+  const radius = 100;
+  const ns = "http://www.w3.org/2000/svg";
+
+  const points = Array.from({length: graph.n}, (_, i) => {
+    const angle = -Math.PI / 2 + 2 * Math.PI * i / graph.n;
+
+    return {
+      x: cx + radius * Math.cos(angle),
+      y: cy + radius * Math.sin(angle)
+    };
   });
-  svg.innerHTML="";
-  for(const [u,v,w] of g.edges){
-    const crosses=bits[u]!==bits[v];
-    const line=document.createElementNS("http://www.w3.org/2000/svg","line");
-    Object.entries({x1:pts[u].x,y1:pts[u].y,x2:pts[v].x,y2:pts[v].y,
-      stroke:crosses?"#5eead4":"#52617b","stroke-width":crosses?4:2})
-      .forEach(([k,val])=>line.setAttribute(k,val));
+
+  svg.replaceChildren();
+
+  for (const [u, v] of graph.edges) {
+    const crosses = bits[u] !== bits[v];
+    const line = document.createElementNS(ns, "line");
+
+    line.setAttribute("x1", points[u].x);
+    line.setAttribute("y1", points[u].y);
+    line.setAttribute("x2", points[v].x);
+    line.setAttribute("y2", points[v].y);
+    line.setAttribute("stroke", crosses ? "#86efac" : "#52617b");
+    line.setAttribute("stroke-width", crosses ? "4" : "2");
+
     svg.appendChild(line);
   }
-  pts.forEach((pt,i)=>{
-    const group=document.createElementNS("http://www.w3.org/2000/svg","g");
-    const circle=document.createElementNS("http://www.w3.org/2000/svg","circle");
-    circle.setAttribute("cx",pt.x);circle.setAttribute("cy",pt.y);
-    circle.setAttribute("r",19);
-    circle.setAttribute("fill",bits[i]?"#f472b6":"#5eead4");
-    group.appendChild(circle);
-    const text=document.createElementNS("http://www.w3.org/2000/svg","text");
-    text.setAttribute("x",pt.x);text.setAttribute("y",pt.y+5);
-    text.setAttribute("text-anchor","middle");text.setAttribute("fill","#101827");
-    text.setAttribute("font-weight","bold");text.textContent=i;
-    group.appendChild(text);svg.appendChild(group);
+
+  points.forEach((point, i) => {
+    const circle = document.createElementNS(ns, "circle");
+
+    circle.setAttribute("cx", point.x);
+    circle.setAttribute("cy", point.y);
+    circle.setAttribute("r", 19);
+    circle.setAttribute("fill", bits[i] ? "#f472b6" : "#5eead4");
+
+    const label = document.createElementNS(ns, "text");
+
+    label.setAttribute("x", point.x);
+    label.setAttribute("y", point.y + 5);
+    label.setAttribute("text-anchor", "middle");
+    label.setAttribute("font-weight", "bold");
+    label.setAttribute("fill", "#101827");
+    label.textContent = String(i);
+
+    svg.append(circle, label);
   });
 }
 
-function drawBars(items){
-  const root=$("bars");root.innerHTML="";
-  items.forEach((item,i)=>{
-    const bar=document.createElement("div");
-    bar.className="bar"+(i===0?" best":"");
-    bar.style.height=Math.max(2,item.probability*100)+"%";
-    bar.title=`${item.bits.join("")}: ${(item.probability*100).toFixed(2)}%`;
-    const label=document.createElement("span");
-    label.textContent=item.bits.join("");
-    bar.appendChild(label);root.appendChild(bar);
+function drawBars(items) {
+  const root = $("bars");
+  root.replaceChildren();
+
+  const maxProbability = Math.max(...items.map(item => item.probability), 1e-12);
+
+  items.forEach((item, index) => {
+    const bar = document.createElement("div");
+    bar.className = "bar" + (index === 0 ? " best" : "");
+
+    bar.style.height =
+      Math.max(2, item.probability / maxProbability * 100) + "%";
+
+    bar.title =
+      `${item.bits.join("")}: ${(item.probability * 100).toFixed(2)}%`;
+
+    const label = document.createElement("span");
+    label.textContent = item.bits.join("");
+
+    bar.appendChild(label);
+    root.appendChild(bar);
   });
 }
 
-function reset(){
-  lastResult=null;
-  ["cut","expected","ratio","optimum","prob","runtime"].forEach(id=>$(id).textContent="—");
-  $("status").textContent="Ready. Run a simulation to calculate results.";
-  $("details").innerHTML="<tr><th>Status</th><td>Not run</td></tr>";
-  $("bars").innerHTML="";
-  $("graph").innerHTML="";
+function reset() {
+  if (running) return;
+
+  lastResult = null;
+
+  [
+    "sampleCut", "expected", "ratio",
+    "optimum", "optProb", "runtime"
+  ].forEach(id => $(id).textContent = "—");
+
+  $("status").textContent = "Ready. Select your settings and run a simulation.";
+  $("appState").textContent = "Ready to simulate";
+  $("details").innerHTML =
+    "<tr><th>Status</th><td>Not run</td></tr>";
+
+  $("bars").replaceChildren();
+  $("graphView").replaceChildren();
 }
 
-$("run").addEventListener("click",run);
-$("reset").addEventListener("click",reset);
-$("graph").addEventListener("change",reset);
-$("depth").addEventListener("change",reset);
-$("csv").addEventListener("click",()=>{
-  if(!lastResult){$("status").textContent="Run a simulation before exporting.";return;}
-  const rows=[
-    ["metric","value"],
-    ["graph",lastResult.graph],
-    ["nodes",lastResult.n],
-    ["edges",lastResult.edges.length],
-    ["qaoa_layers",lastResult.p],
-    ["parameter_trials",lastResult.trials],
-    ["classical_optimum",lastResult.optimum],
-    ["expected_cut",lastResult.expected],
-    ["best_sampled_cut",lastResult.bestCut],
-    ["approximation_ratio",lastResult.ratio],
-    ["best_state_probability",lastResult.probability],
-    ["runtime_ms",lastResult.runtime],
-    ["parameters",lastResult.params.join(";")],
-    ["partition",lastResult.partition.join("")]
+function exportCSV() {
+  if (!lastResult) {
+    $("status").textContent = "Run a simulation before exporting CSV.";
+    return;
+  }
+
+  const result = lastResult;
+  const rows = [
+    ["metric", "value"],
+    ["graph", result.graph],
+    ["nodes", result.n],
+    ["edges", result.edges.length],
+    ["qaoa_layers", result.p],
+    ["parameter_candidates", result.trials],
+    ["measurement_shots", result.shots],
+    ["classical_optimum", result.optimum],
+    ["expected_cut", result.expected],
+    ["best_observed_cut", result.bestObservedCut],
+    ["approximation_ratio", result.ratio],
+    ["optimal_cut_probability", result.optimalProbability],
+    ["runtime_ms", result.runtime],
+    ["parameters", result.params.join(";")],
+    ["most_probable_partition", result.partition.join("")],
+    ["measurement_counts", JSON.stringify(result.counts)]
   ];
-  const csv=rows.map(row=>row.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(",")).join("\n");
-  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
-  const a=document.createElement("a");a.href=url;a.download="qaoa-results.csv";a.click();
-  URL.revokeObjectURL(url);
-});
+
+  const csv = rows
+    .map(row => row.map(value =>
+      '"' + String(value).replace(/"/g, '""') + '"'
+    ).join(","))
+    .join("\r\n");
+
+  const blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "maxcut-qaoa-results.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+$("run").addEventListener("click", run);
+$("reset").addEventListener("click", reset);
+$("csv").addEventListener("click", exportCSV);
+
+$("graph").addEventListener("change", reset);
+$("depth").addEventListener("change", reset);
+$("trials").addEventListener("change", reset);
+
+/* Draw an initial graph before the first experiment. */
+drawGraph(getGraph(), [0, 1, 0, 1, 0]);
 </script>
 </body>
 </html>
+```
